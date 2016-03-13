@@ -27,6 +27,8 @@ You can resolve the conflict by writing a new value.
  - `db.on("change")`
  - `db.on("change:<key>")`
 
+---
+
 ### kvdb(namespace, [options])
 
 Creates a new database instance.
@@ -56,9 +58,13 @@ It's values may be:
  - `feed-id`: all items in the feed of the given user (string)
  - `[feed-ids]`: all items in the feeds of teh given users (array of strings)
 
+---
+
 ### db.put(key, value, [options], cb)
 
 Write a value at the given key.
+
+---
 
 ### db.get(key, [options], cb)
 
@@ -69,6 +75,8 @@ If you wish to get all current values, use `getMV()`.
 
 `options.noConflict` will cause the get to fail if the item is in conflict.
 
+---
+
 ### db.getMV(key, [options], cb)
 
 Get the values at the given key, in an array.
@@ -77,21 +85,31 @@ If the key is in conflict, then this method will retrieve all of the current val
 
 A key that is not in conflict will respond with a values array of length `0` or `1`.
 
+---
+
 ### db.del(key, [options], cb)
 
 Remove the value at the given key.
+
+---
 
 ### db.batch(array, [options], cb)
 
 Complete a sequence of put/del operations.
 
+---
+
 ### db.createReadStream([options])
 
 Read sequentially from the database.
 
+---
+
 ### db.on("change")
 
 Emitted when any of the values is updated or deleted.
+
+---
 
 ### db.on("change:{key}")
 
