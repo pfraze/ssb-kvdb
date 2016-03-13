@@ -6,13 +6,11 @@ In development.
 
 ## About
 
-This interface mimics [leveldb](https://github.com/level/levelup) with as few alterations as possible.
-However, in this database, the KV documents are stored in [Secure Scuttlebutt logs](https://github.com/ssbc/secure-scuttlebutt) and replicated on the mesh network.
+KV documents are stored in [Secure Scuttlebutt](https://github.com/ssbc/secure-scuttlebutt) logs and replicated on the mesh network.
 
-This database therefore uses a [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register) to compute the database state.
-The practical effect being, keys may have multiple conflicting values, and the application must resolve conflicts as they occur.
-
-This is a similar to the architecture of CouchDB.
+This interface mimics [leveldb](https://github.com/level/levelup), but uses a [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register) to compute the database state.
+Multiple users may update the database without locking.
+In the case of conflict, the application must resolve them.
 
 
 ## API
@@ -57,38 +55,38 @@ It's values may be:
  - `feed-id`: all items in the feed of the given user (string)
  - `[feed-ids]`: all items in the feeds of teh given users (array of strings)
 
-### `db.put(key, value, [options], cb)`
+### db.put(key, value, [options], cb)
 
 Write a value at the given key.
 
-### `db.get(key, [options], cb)`
+### db.get(key, [options], cb)
 
 Get the value at the given key.
 
-### `db.del(key, [options], cb)`
+### db.del(key, [options], cb)
 
 Remove the value at the given key.
 
-### `db.batch(array, [options], cb)`
+### db.batch(array, [options], cb)
 
 Complete a sequence of put/del operations.
 
-### `db.createReadStream([options])`
+### db.createReadStream([options])
 
 Read sequentially from the database.
 
-### `db.on("change")`
+### db.on("change")
 
 Emitted when any of the values is updated or deleted.
 
-### `db.on("conflict")`
+### db.on("conflict")
 
 Emitted when any of the values comes into conflict.
 
-### `db.on("change:<key>")`
+### db.on("change:<key>")
 
 Emitted when the value at `<key>` is updated or deleted.
 
-### `db.on("conflict:<key>")`
+### db.on("conflict:<key>")
 
 Emitted when the value at `<key>` comes into conflict.
