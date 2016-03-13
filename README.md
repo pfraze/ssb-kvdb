@@ -33,7 +33,7 @@ You can resolve the conflict by writing a new value.
 
 Creates a new database instance.
 
-#### `namespace`
+#### namespace
 
 The `namespace` string is required.
 
@@ -42,7 +42,7 @@ Reads and writes will be scoped to the namespace, making it easier to avoid acci
  - User IDs act as a special namespace which can only be modified by the user.
 Writes to a user-id namespace by other users will be rejected.
 
-#### `options`
+#### options
 
 `options.ssb` sets the secure-scuttlebutt instance which backs the kvdb.
 If window.ssb is not available, then options.ssb must be provided.
