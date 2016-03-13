@@ -1,15 +1,18 @@
 # SSB Key-Value DB
 
 A key-value database for [Scuttlebot applications](https://github.com/ssbc/scuttlebot).
-In development.
-
 
 ## About
 
-KV documents are stored in [Secure Scuttlebutt](https://github.com/ssbc/secure-scuttlebutt) logs and replicated on the mesh network.
+This interface lets you focus on writing applications, instead of working with the SSB log.
+The KV documents are translated into update messages, and then replicated on the mesh network.
+It works just like any Eventually-Consistent database (CouchDB, or Riak), but it's global and p2p.
 
-This interface mimics [leveldb](https://github.com/level/levelup), but uses a [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register) to compute the database state.
+The API mimics [leveldb](https://github.com/level/levelup), but uses a [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register) to compute the database state.
 Multiple users may update the database without locking.
+You can control which users are allowed to make updates.
+
+#### Conflicts
 
 If two users update a value at the same time, then both values will be kept.
 This is technically a "conflict", though you may wish to keep all values.
