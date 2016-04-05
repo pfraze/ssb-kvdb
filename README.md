@@ -40,7 +40,7 @@ sbot.kv.post(namespace, value, { shared: true, authors: feedIds })
 // (this is the only way to create shared values)
 ```
 
-#### Siloed values
+### Siloed datasets
 
 By default, kvdb "siloes" the dataset for each author.
 That means, at a given key, each user has their own value, which only they can update.
@@ -107,7 +107,7 @@ sbot.kv.getAll('about', bobsId, { authors: [myId, alicesId] }, function (err, pr
 })
 ```
 
-#### Shared values
+### Shared values
 
 Kvdb can create "shared values," which allow multiple users to make updates to a single key.
 Shared values use the [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register).
@@ -157,7 +157,7 @@ sbot.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, fu
 })
 ```
 
-#### Conflicts
+### Conflicts
 
 In shared values, if two users update a value at the same time, then both values are kept.
 This is called a "conflict".
@@ -240,7 +240,7 @@ sbot.kv.get('todos', todoList.key, function (err, todoList) {
 })
 ```
 
-#### Namespaces
+### Namespaces
 
 The namespace sets the `type` attribute on the ssb messages, and sets the attribute for each document's "key."
 For instance, in a kvdb with a namespace of `about`:
@@ -278,7 +278,7 @@ It's useful to maintain certain conventions, so that the message content is plea
 Messages which use the `type` value as a key are a common pattern in SSB.
 The key tends to indicate the "subject" of the message.
 
-#### Private datasets
+### Private datasets
 
 Encrypted datasets are not yet supported.
 All kvdbs are public.
