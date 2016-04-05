@@ -15,27 +15,27 @@ The KV documents are translated into update messages, and then replicated on the
 Overview:
 
 ```js
-kv.get(namespace, key)
+sbot.kv.get(namespace, key)
 // get a single value for a namespace+key
 // (gives the main user's value)
 
-kv.get(namespace, key, { author: feedId })
+sbot.kv.get(namespace, key, { author: feedId })
 // get a specific user's value
 
-kv.getAll(namespace, key)
+sbot.kv.getAll(namespace, key)
 // get all users' values for namespace+key, as an array
 
-kv.getAll(namespace, key, { authors: feedIds })
+sbot.kv.getAll(namespace, key, { authors: feedIds })
 // only give values from specified authors
 
-kv.put(namespace, key, value)
+sbot.kv.put(namespace, key, value)
 // update the value at namespace+key
 
-kv.post(namespace, value)
+sbot.kv.post(namespace, value)
 // set the value at a generated key
 // (gives the key in the response cb)
 
-kv.post(namespace, value, { shared: true, authors: feedIds })
+sbot.kv.post(namespace, value, { shared: true, authors: feedIds })
 // creates a shared value, owned by `authors`
 // (this is the only way to create shared values)
 ```
@@ -55,10 +55,10 @@ The Patchwork "user profiles" system, for instance, uses siloing so that each us
 // lets read/write some profile data
 
 // set bob's profile
-ssb.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (err) {
+sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (err) {
 
   // get the profile I created
-  ssb.kv.get('about', bobsId, function (err, profile) {
+  sbot.kv.get('about', bobsId, function (err, profile) {
     console.log(profile) /* => {
       key: bobsId,
       author: myId,
@@ -70,10 +70,10 @@ ssb.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (er
   })
 
   // update his name
-  ssb.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
+  sbot.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
 
     // check result
-    ssb.kv.get('about', bobsId, function (err, profile) {
+    sbot.kv.get('about', bobsId, function (err, profile) {
 
       // notice that only `name` was changed:
       console.log(profile) /* => {
@@ -89,7 +89,7 @@ ssb.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (er
 })
 
 // get everybody's profiles for bob
-ssb.kv.getAll('about', bobsId, function (err, profiles) {
+sbot.kv.getAll('about', bobsId, function (err, profiles) {
   console.log(profiles) /* => [
     { key: bobsId, author: myId, value: { name: 'Robert', desc: 'My friend bob' } },
     { key: bobsId, author: alicesId, value: { name: 'Bobby', desc: 'My dear husband' } },
@@ -99,7 +99,7 @@ ssb.kv.getAll('about', bobsId, function (err, profiles) {
 })
 
 // get alice's and my profiles for bob
-ssb.kv.getAll('about', bobsId, { authors: [myId, alicesId] }, function (err, profiles) {
+sbot.kv.getAll('about', bobsId, { authors: [myId, alicesId] }, function (err, profiles) {
   console.log(profiles) /* => [
     { key: bobsId, author: myId, value: { name: 'Robert', desc: 'My friend bob' } },
     { key: bobsId, author: alicesId, value: { name: 'Bobby', desc: 'My dear husband' } },
@@ -120,7 +120,7 @@ Shared values must be explicitly created with a `post()` call, which specifies t
 ```js
 // create a new todo list
 var initValue = { title: 'Our Todo List', items: {} }
-ssb.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, function (err, todoList) {
+sbot.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, function (err, todoList) {
   console.log(todoList) /* => {
     key: generatedId,
     shared: true,
@@ -137,10 +137,10 @@ ssb.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, fun
     label: 'Write a kvdb app',
     ts: Date.now()
   }
-  ssb.kv.put('todos', todoList.key, { items: todoList.value.items }, function () { 
+  sbot.kv.put('todos', todoList.key, { items: todoList.value.items }, function () { 
 
     // fetch new state
-    ssb.kv.get('todos', todoList.key, function (err, todoList) {
+    sbot.kv.get('todos', todoList.key, function (err, todoList) {
       console.log(todoList) /* => {
         key: generatedId,
         shared: true,
@@ -169,7 +169,7 @@ You can resolve the conflict by reading the conflicting values, choosing what to
 // continuing from the above "shared value" example
 
 // fetch current state
-ssb.kv.get('todos', todoList.key, function (err, todoList) {
+sbot.kv.get('todos', todoList.key, function (err, todoList) {
 
   // let's assume alice made a conflicting update:
   console.log(todoList) /* => {
@@ -246,7 +246,7 @@ The namespace sets the `type` attribute on the ssb messages, and sets the attrib
 For instance, in a kvdb with a namespace of `about`:
 
 ```js
-ssb.kv.put('about', bobsId, { name: 'Bob' })
+sbot.kv.put('about', bobsId, { name: 'Bob' })
 ```
 
 The resulting message from that `put` would look like this:
@@ -287,18 +287,18 @@ All kvdbs are public.
 
 # Everything below here is still todo and somewhat wrong. Go that way ^
 
- - `kv.getAll()`
- - `kv.get()`
- - `kv.put()`
- - `kv.post()`
- - `kv.del()`
- - `kv.batch()`
- - `kv.list()`
- - `kv.listen()`
+ - `sbot.kv.getAll()`
+ - `sbot.kv.get()`
+ - `sbot.kv.put()`
+ - `sbot.kv.post()`
+ - `sbot.kv.del()`
+ - `sbot.kv.batch()`
+ - `sbot.kv.list()`
+ - `sbot.kv.listen()`
 
 ---
 
-### kv.put(namespace, key, value, [options], cb)
+### sbot.kv.put(namespace, key, value, [options], cb)
 
 Write a value at the given key.
 
@@ -315,7 +315,7 @@ If `value` uses these keys, `put` will error.
 
 ---
 
-### kv.get(key, [options], cb)
+### sbot.kv.get(key, [options], cb)
 
 Get the value at the given key.
 
@@ -326,7 +326,7 @@ If you wish to get all current values by all authors, use `getMV()`.
 
 ---
 
-### kv.getMV(key, [options], cb)
+### sbot.kv.getMV(key, [options], cb)
 
 Get the values at the given key, in an array.
 
@@ -336,30 +336,30 @@ A key that is not in conflict will respond with a values array of length `0` or 
 
 ---
 
-### kv.del(key, [options], cb)
+### sbot.kv.del(key, [options], cb)
 
 Remove the value at the given key.
 
 ---
 
-### kv.batch(array, [options], cb)
+### sbot.kv.batch(array, [options], cb)
 
 Complete a sequence of put/del operations.
 
 ---
 
-### kv.createReadStream([options])
+### sbot.kv.createReadStream([options])
 
 Read sequentially from the database.
 
 ---
 
-### kv.on("change")
+### sbot.kv.on("change")
 
 Emitted when any of the values is updated or deleted.
 
 ---
 
-### kv.on("change:{key}")
+### sbot.kv.on("change:{key}")
 
 Emitted when the value at `{key}` is updated or deleted.
