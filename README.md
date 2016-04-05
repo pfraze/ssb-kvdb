@@ -43,7 +43,8 @@ sbot.kv.post(namespace, value, { shared: true, authors: feedIds })
 ### Siloed datasets
 
 By default, kvdb "siloes" the dataset for each author.
-That means, at a given key, each user has their own value, which only they can update.
+That means, each user has their own KVs in each namespace.
+Only the owning-users can update their KVs, but everybody else can read them.
 
 Siloing is convenient when users have their own datasets.
 The Patchwork "user profiles" system, for instance, uses siloing so that each user has their own contacts.
@@ -69,7 +70,7 @@ sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (e
     } */
   })
 
-  // update his name
+  // update bob's name
   sbot.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
 
     // check result
@@ -113,7 +114,7 @@ Kvdb can create "shared values," which allow multiple users to make updates to a
 Shared values use the [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register).
 They're a little more complex to work with, so avoid shared values unless you know you need them.
 
-Shared values must be explicitly created with a `post()` call, which specifies the authors.
+Shared values must be explicitly created with a `post()` call, which specifies the owners.
 
 **Example usage for shared values:**
 
@@ -159,8 +160,7 @@ sbot.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, fu
 
 ### Conflicts
 
-In shared values, if two users update a value at the same time, then both values are kept.
-This is called a "conflict".
+In shared values, if two users update a value at the same time, then both values are kept in a "conflict" state.
 You can resolve the conflict by reading the conflicting values, choosing what to keep, and writing a new value.
 
 **Example conflict-resolution for shared values:**
