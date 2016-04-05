@@ -15,23 +15,18 @@ The KV documents are translated into update messages, and then replicated on the
 Overview:
 
 ```js
+kv.get(namespace, key)
+// get a single value for a namespace+key
+// (gives the main user's value)
+
+kv.get(namespace, key, { author: feedId })
+// get a specific user's value
+
 kv.getAll(namespace, key)
-// get all values for namespace+key, as an array
-// behavior varies by type of value at `key`
-// - siloed value: fetches all users' values
-// - shared value: fetches all authors' values
+// get all users' values for namespace+key, as an array
 
 kv.getAll(namespace, key, { authors: feedIds })
 // only give values from specified authors
-
-kv.get(namespace, key)
-// get a single value for a namespace+key
-// behavior varies by type of value at `key`
-// - siloed value: fetches the main user's value
-// - shared value: fetches the merged value
-
-kv.get(namespace, key, { author: feedId })
-// only give one author's value (no merging)
 
 kv.put(namespace, key, value)
 // update the value at namespace+key
@@ -42,29 +37,23 @@ kv.post(namespace, value)
 
 kv.post(namespace, value, { shared: true, authors: feedIds })
 // creates a shared value, owned by `authors`
-// (this is the only way to create a shared value)
-
-kv.list(namespace)
-// list all values in the namespace
-
-kv.list(namespace, { author: feedId })
-// list all values in the namespace by author (including shared)
-
-kv.list(namespace, { values: false })
-// get keys only
+// (this is the only way to create shared values)
 ```
 
 #### Siloed values
 
-By default, kvdb will "silo" the dataset for each author.
+By default, kvdb "siloes" the dataset for each author.
 That means, at a given key, each user has their own value, which only they can update.
 
 Siloing is convenient when users have their own datasets.
-The Patchwork "user profiles" system, in the `about` namespace, uses siloing so that each user has their own contacts.
+The Patchwork "user profiles" system, for instance, uses siloing so that each user has their own contacts.
 
 **Example usage for siloed datasets:**
 
 ```js
+// user profiles are in the 'about' namespace
+// lets read/write some profile data
+
 // set bob's profile
 ssb.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (err) {
 
@@ -78,23 +67,23 @@ ssb.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (er
         desc: 'My friend bob'
       }
     } */
+  })
 
-    // update his name
-    ssb.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
+  // update his name
+  ssb.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
 
-      // check result
-      ssb.kv.get('about', bobsId, function (err, profile) {
+    // check result
+    ssb.kv.get('about', bobsId, function (err, profile) {
 
-        // notice that only `name` was changed:
-        console.log(profile) /* => {
-          key: bobsId,
-          author: myId,
-          value: {
-            name: 'Robert',
-            desc: 'My friend bob'
-          }
-        } */
-      })
+      // notice that only `name` was changed:
+      console.log(profile) /* => {
+        key: bobsId,
+        author: myId,
+        value: {
+          name: 'Robert',
+          desc: 'My friend bob'
+        }
+      } */
     })
   })
 })
@@ -120,11 +109,11 @@ ssb.kv.getAll('about', bobsId, { authors: [myId, alicesId] }, function (err, pro
 
 #### Shared values
 
-Kvdb can create "shared values," which allow multiple users to make updates.
+Kvdb can create "shared values," which allow multiple users to make updates to a single key.
 Shared values use the [multi-value register CRDT](https://github.com/pfraze/crdt_notes#multi-value-register-mv-register).
+They're a little more complex to work with, so avoid shared values unless you know you need them.
 
 Shared values must be explicitly created with a `post()` call, which specifies the authors.
-They're a little more complex to work with, so it's recommended to avoid shared values unless you know you need them.
 
 **Example usage for shared values:**
 
@@ -143,8 +132,11 @@ ssb.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, fun
     }
   } */
 
-  // update with a todo item
-  todoList.value.items[genId()] = { label: 'Write a kvdb app', ts: Date.now() }
+  // add a todo item
+  todoList.value.items[genId()] = {
+    label: 'Write a kvdb app',
+    ts: Date.now()
+  }
   ssb.kv.put('todos', todoList.key, { items: todoList.value.items }, function () { 
 
     // fetch new state
@@ -169,33 +161,12 @@ ssb.kv.post('todos', initValue, { shared: true, authors: [myId, alicesId] }, fun
 
 In shared values, if two users update a value at the same time, then both values are kept.
 This is called a "conflict".
-
 You can resolve the conflict by reading the conflicting values, choosing what to keep, and writing a new value.
 
 **Example conflict-resolution for shared values:**
 
 ```js
 // continuing from the above "shared value" example
-
-// define a method to merge the value, when conflicts arise
-function merge (current, conflicts) {
-  if (conflicts.title) {
-    // there's no good way to merge title, just take the first
-    current.title = conflicts.title[0]
-  }
-  if (conflicts.items) {
-    // this is easy, since we give unique IDs to each item -- just merge the objects
-    conflicts.items.forEach(function (items) {
-      Object.assign(current.items, items)
-    })
-  }
-  if (conflicts.completed) {
-    // same as with items
-    conflicts.completed.forEach(function (completed) {
-      Object.assign(current.completed, completed)
-    })
-  }
-}
 
 // fetch current state
 ssb.kv.get('todos', todoList.key, function (err, todoList) {
@@ -219,12 +190,31 @@ ssb.kv.get('todos', todoList.key, function (err, todoList) {
       ]
     }
   } */
-
   // it appears `items` is in conflict
 
-  // let's handle the conflicts
+  // handle the conflicts:
   if (todoList.conflicts) {
-    merge(todoList.value, todoList.conflicts)
+
+    if (conflicts.title) {
+      // there's no good way to merge title, just take the first
+      current.title = conflicts.title[0]
+    }
+
+    if (conflicts.items) {
+      // this is easy, since we give unique IDs to each item 
+      // -- just merge the objects
+      conflicts.items.forEach(function (items) {
+        Object.assign(current.items, items)
+      })
+    }
+
+    if (conflicts.completed) {
+      // same as with items
+      conflicts.completed.forEach(function (completed) {
+        Object.assign(current.completed, completed)
+      })
+    }
+
     delete todoList.conflicts
   }
 
@@ -253,7 +243,6 @@ ssb.kv.get('todos', todoList.key, function (err, todoList) {
 #### Namespaces
 
 The namespace sets the `type` attribute on the ssb messages, and sets the attribute for each document's "key."
-
 For instance, in a kvdb with a namespace of `about`:
 
 ```js
@@ -286,13 +275,12 @@ This means that `type`, and namespace value, are reserved keys that can't be use
 
 SSB messages are consumed by some applications directly.
 It's useful to maintain certain conventions, so that the message content is pleasant to work with.
-
 Messages which use the `type` value as a key are a common pattern in SSB.
 The key tends to indicate the "subject" of the message.
 
 #### Private datasets
 
-**Encrypted datasets are not yet supported.**
+Encrypted datasets are not yet supported.
 All kvdbs are public.
 
 ## API
