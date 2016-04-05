@@ -16,8 +16,7 @@ Overview:
 
 ```js
 sbot.kv.get(namespace, key)
-// get a single value for a namespace+key
-// (gives the main user's value)
+// get the local user's value for a namespace+key
 
 sbot.kv.get(namespace, key, { author: feedId })
 // get a specific user's value
@@ -26,14 +25,13 @@ sbot.kv.getAll(namespace, key)
 // get all users' values for namespace+key, as an array
 
 sbot.kv.getAll(namespace, key, { authors: feedIds })
-// only give values from specified authors
+// get specific users' values
 
 sbot.kv.put(namespace, key, value)
 // update the value at namespace+key
 
 sbot.kv.post(namespace, value)
-// set the value at a generated key
-// (gives the key in the response cb)
+// set a value at a generated key
 
 sbot.kv.post(namespace, value, { shared: true, authors: feedIds })
 // creates a shared value, owned by `authors`
@@ -43,7 +41,7 @@ sbot.kv.post(namespace, value, { shared: true, authors: feedIds })
 ### Siloed datasets
 
 By default, kvdb "siloes" the dataset for each author.
-That means, each user has their own KVs in each namespace.
+Each user has their own KVs.
 Only the owning-users can update their KVs, but everybody else can read them.
 
 Siloing is convenient when users have their own datasets.
@@ -53,7 +51,6 @@ The Patchwork "user profiles" system, for instance, uses siloing so that each us
 
 ```js
 // user profiles are in the 'about' namespace
-// lets read/write some profile data
 
 // set bob's profile
 sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (err) {
@@ -69,23 +66,23 @@ sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' }, function (e
       }
     } */
   })
+})
 
-  // update bob's name
-  sbot.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
+// later...
+// update bob's name
+sbot.kv.put('about', bobsId, { name: 'Robert' }, function (err) {
 
-    // check result
-    sbot.kv.get('about', bobsId, function (err, profile) {
-
-      // notice that only `name` was changed:
-      console.log(profile) /* => {
-        key: bobsId,
-        author: myId,
-        value: {
-          name: 'Robert',
-          desc: 'My friend bob'
-        }
-      } */
-    })
+  // get the updated profile
+  sbot.kv.get('about', bobsId, function (err, profile) {
+    console.log(profile) /* => {
+      key: bobsId,
+      author: myId,
+      value: {
+        name: 'Robert',
+        desc: 'My friend bob'
+      }
+    } */
+    // notice that only `name` was changed ^
   })
 })
 
@@ -209,7 +206,7 @@ sbot.kv.get('todos', todoList.key, function (err, todoList) {
     }
 
     if (conflicts.completed) {
-      // same as with items
+      // same solution as with items ^
       conflicts.completed.forEach(function (completed) {
         Object.assign(current.completed, completed)
       })
