@@ -237,6 +237,120 @@ sbot.kv.get('todos', todoList.key, function (err, todoList) {
 })
 ```
 
+## Relation to SSB Messages
+
+Kvdb abstracts over SSB messages, to make dev more convenient.
+However, many applications will consume the logs directly (without kvdb) so it's useful to understand how kvdb updates are published.
+
+### Siloed data updates
+
+Observe the following sequence of updates:
+
+```js
+var bobsId = '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519'
+sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' })
+sbot.kv.put('about', bobsId, { name: 'Robert' })
+sbot.kv.put('about', bobsId, { desc: 'My good friend Robert', skills: { javascript: true } })
+sbot.kv.del('about', bobsId)
+```
+
+These translate to the following SSB messages:
+
+```js
+{
+  type: 'about',
+  about: '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519',
+  name: 'Bob',
+  desc: 'My friend bob'
+}
+{
+  type: 'about',
+  about: '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519',
+  name: 'Robert'
+}
+{
+  type: 'about',
+  about: '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519',
+  desc: 'My good friend Robert',
+  skills: { javascript: true }
+}
+{
+  type: 'about',
+  about: '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519',
+  _deleted: true
+}
+```
+
+### Shared data updates
+
+Observe the following sequence of updates:
+
+```js
+var bobsId   = '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519'
+var alicesId = '@p13zSAiOpguI9nsawkGijsnMfWmFd5rlUNpzekEE+vI=.ed25519'
+sbot.kv.post('todos', { items: [] }, { shared: true, authors: [bobsId, alicesId] }, function (err, todoList) {
+
+  // first:
+  sbot.kv.put('todos', todoList.key, { items: ['Get groceries'] })
+
+  // then, concurrently...
+  // bob writes:
+  sbot.kv.put('todos', todoList.key, { items: ['Get groceries', 'Visit my parents'] })
+  // alice writes:
+  sbot.kv.put('todos', todoList.key, { items: ['Get groceries', 'Shop for a watch'] })
+
+  // then, after receiving all updates, bob writes:
+  sbot.kv.put('todos', todoList.key, { items: ['Get groceries', 'Visit my parents', 'Shop for a watch'] })
+})
+```
+
+These translate to the following SSB messages:
+
+```js
+{
+  type: 'todos',
+  _init: {
+    shared: true,
+    authors: [
+      '@hxGxqPrplLjRG2vtjQL87abX4QKqeLgCwQpS730nNwE=.ed25519',
+      '@p13zSAiOpguI9nsawkGijsnMfWmFd5rlUNpzekEE+vI=.ed25519'
+    ]
+  }
+}
+// ^ message id = msgId1
+
+{
+  type: 'todos',
+  todos: msgId1,
+  updates: msgId1,
+  items: ['Get groceries']
+}
+// ^ message id = msgId2
+
+{
+  type: 'todos',
+  todos: msgId1,
+  updates: msgId2,
+  items: ['Get groceries', 'Visit my parents']
+}
+// ^ message id = msgId3
+
+{
+  type: 'todos',
+  todos: msgId1,
+  updates: msgId2,
+  items: ['Get groceries', 'Shop for a watch']
+}
+// ^ message id = msgId4
+
+{
+  type: 'todos',
+  todos: msgId1,
+  updates: [msgId3, msgId4],
+  items: ['Get groceries', 'Visit my parents', 'Shop for a watch']
+}
+```
+
 ### Namespaces
 
 The namespace sets the `type` attribute on the ssb messages, and sets the attribute for each document's "key."
@@ -266,7 +380,16 @@ If the namespace were, eg, `bobs-app-about`, the message would look like this:
 }
 ```
 
-This means that `type`, and namespace value, are reserved keys that can't be used in the value object.
+### Reserved keys
+
+The following keys can not be used in the value object:
+
+ - `type`: this key is special in ssb messages.
+ - `_init`: this key is used to create shared values.
+ - `updates`: this key is used to link to past messages, indicating the old values which are being overwritten.
+ - `_deleted`: this key is used to indicate that the value has been deleted.
+ - The namespace value. For instance, if `namespace` is "foo", then the "foo" key is reserved.
+
 
 **Why is the namespace value used as an attribute?**
 
@@ -305,7 +428,7 @@ The following keys can not be used in the value object:
 
  - `type`: this key is special in ssb messages.
  - `updates`: this key is used to link to past messages, indicating the old values which are being overwritten.
- - `deleted`: this key is used to indicate that the value has been deleted.
+ - `_deleted`: this key is used to indicate that the value has been deleted.
  - The namespace value. For instance, if `namespace` is "foo", then the "foo" key is reserved.
 
 If `value` uses these keys, `put` will error.
