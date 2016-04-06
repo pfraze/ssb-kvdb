@@ -398,7 +398,64 @@ It's useful to maintain certain conventions, so that the message content is plea
 Messages which use the `type` value as a key are a common pattern in SSB.
 The key tends to indicate the "subject" of the message.
 
-### Private datasets
+*Dissent welcome.*
+
+
+### Rules for updates
+
+You may have noticed that `put()` only makes partial updates to the document.
+For instance:
+
+```js
+sbot.kv.put('about', bobsId, { name: 'Bob' })
+sbot.kv.put('about', bobsId, { desc: 'My friend bob' })
+```
+
+Results in `{ name: 'Bob', desc: 'My friend bob' }`.
+
+Kvdb uses a shallow merge of the update objects.
+The new top-level attributes overwrite any existing top-level attributes; to simply remove an attribute, you must include it with a value of `undefined` or `null`:
+
+```js
+sbot.kv.put('about', bobsId, { name: 'Bob', desc: 'My friend bob' })
+sbot.kv.put('about', bobsId, { desc: null })
+```
+
+Results in `{ name: 'Bob', desc: null }`.
+
+If there are objects within the value document, they will not be merged together.
+For instance:
+
+```js
+sbot.kv.put('about', bobsId, { skills: { javascript: true } })
+sbot.kv.put('about', bobsId, { skills: { php: true } })
+```
+
+Will result in `{ skills: { php: true } }`.
+This is because kvdb does a *shallow* merge, not a recursive/deep merge.
+
+This is also true for arrays:
+
+```js
+sbot.kv.put('about', bobsId, { skills: ['javascript'] })
+sbot.kv.put('about', bobsId, { skills: ['php'] })
+```
+
+Will result in `{ skills: ['php'] }`.
+
+**Why use a shallow merge instead of a deep merge?**
+
+Specifically, because of arrays.
+
+Take a look at [this deepmerge algorithm](https://github.com/KyleAMathews/deepmerge).
+It works great, except for one problem: there's no way to *remove* an item from arrays.
+You can only add values.
+
+Shallow merging is a tradeoff.
+It gives more control, but it's definitely less convenient and space-efficient.
+*Dissent welcome.*
+
+## Private datasets
 
 Encrypted datasets are not yet supported.
 All kvdbs are public.
